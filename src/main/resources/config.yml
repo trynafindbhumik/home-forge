@@ -1,0 +1,102 @@
+# Database
+# type: SQLITE  → single server (recommended default)
+# type: MYSQL   → multi-server / BungeeCord networks
+database:
+  type: SQLITE
+
+  sqlite:
+    file: homes.db
+
+  mysql:
+    host: localhost
+    port: 3306
+    database: homeforge
+    username: root
+    password: ''
+    pool-size: 10
+    connection-timeout: 30000
+    max-lifetime: 1800000
+
+# General
+settings:
+  # Set false to give all players unlimited homes (ignores limit permissions)
+  use_permissions: true
+
+  # Home limit when no homeforge.limit.N permission is present
+  default_home_limit: 3
+
+  # Home limit for homeforge.limit.* (wildcard permission)
+  max_home_limit: 54
+
+  # true  → all matching homeforge.limit.N permissions are added together
+  # false → only the highest matching permission is used
+  count_home_permission_limit_together: false
+
+  # Seconds between /home uses (0 = disabled)
+  command_cooldown_home: 0
+
+  # Seconds players must stand still before teleporting (0 = instant)
+  teleport_delay: 0
+  teleport_delay_check_movement: true
+
+  # Effects on teleport arrival
+  sound_on_teleport: true
+  particle_on_teleport: true
+
+  # BungeeCord: set to this server's name in BungeeCord config.yml
+  # Leave blank '' for single-server setups
+  server_name: ''
+
+# GUI
+gui:
+  title: '&8Your Homes'
+  admin_title: '&8Homes of %player%'
+  settings_title: '&8%name%'
+  symbol_picker_title: '&8Choose Symbol'
+
+# Messages
+# Supports & color codes. Use %placeholder% as shown.
+messages:
+  prefix: '&8[&bHomeForge&8] &r'
+
+  home_set: '&aHome &b%name% &ahas been set!'
+  home_location_updated: '&aLocation of &b%name% &aupdated!'
+  home_already_exists: '&cA home named &b%name% &calready exists.'
+  home_limit_reached: '&cHome limit reached! &7(&f%current%&7/&f%max%&7)'
+  home_name_invalid: '&cHome names can only contain letters, numbers, - and _.'
+
+  home_teleport: '&aTeleporting to &b%name%&a...'
+  home_not_found: '&cNo home named &b%name%&c found.'
+  no_primary_home: '&cNo primary home set. Use &b/homes &cto set one.'
+  no_homes: '&cYou have no homes. Use &b/sethome <n> &cto create one.'
+
+  home_removed: '&aHome &b%name% &aremoved.'
+  primary_home_set: '&b%name% &ais now your primary home.'
+  symbol_changed: '&aSymbol for &b%name% &aupdated.'
+
+  no_home_other: '&cThis player has no homes.'
+  player_not_found: '&cPlayer &b%player% &cnot found.'
+
+  extra_homes_added: '&aGave &b%player% &b%amount% &aextra home(s). Total bonus: &b%total%'
+  extra_homes_removed: '&aRemoved &b%amount% &aextra home(s) from &b%player%. Total bonus: &b%total%'
+  extra_homes_set: '&aSet &b%player%&a''s extra homes to &b%amount%.'
+  homes_info: '&b%player% &8— &fHomes: &b%homes%&7/&b%max% &f| Bonus: &b%extra%'
+
+  delayed_teleport: '&7Teleporting in &b%seconds%s&7... stay still!'
+  delayed_teleport_already_in_progress: '&cA teleport is already in progress.'
+  delayed_teleport_cancel_movement: '&cTeleport cancelled — you moved.'
+  cooldown: '&cWait &b%seconds%s &cbefore teleporting again.'
+
+  home_cross_server: '&aSending you to &b%server% &afor home &b%name%&a...'
+
+  no_permission: '&cYou don''t have permission to do this.'
+  players_only: '&cThis command can only be used by players.'
+  invalid_usage: '&cInvalid usage. Check &b/help &cfor details.'
+  invalid_amount: '&cAmount must be a positive whole number.'
+
+  config_reloaded: '&aConfiguration reloaded.'
+
+  import_success: '&aImported &b%count% &ahome(s) from EssentialsX.'
+  import_nothing: '&eNo EssentialsX homes found to import.'
+  import_failed: '&cImport failed: %error%'
+  import_usage: '&cUsage: /importhomes essentials'

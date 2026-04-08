@@ -1,0 +1,115 @@
+name: HomeForge
+version: '${project.version}'
+main: io.github.homeforge.HomeForge
+description: A modern sethome plugin for Paper 26.1
+author: Bhumik Jain
+website: https://github.com/trynafindbhumik/HomeForge
+api-version: '1.21.11'
+
+# SQLite and HikariCP downloaded by Paper at startup — no shading needed
+libraries:
+  - org.xerial:sqlite-jdbc:3.49.1.0
+  - com.zaxxer:HikariCP:6.2.1
+
+commands:
+  sethome:
+    description: Set a home at your current location.
+    usage: /sethome [name]
+    permission: homeforge.use
+    permission-message: '&cYou don''t have permission to use this command.'
+
+  home:
+    description: Teleport to one of your homes.
+    usage: /home [name]
+    permission: homeforge.use
+    permission-message: '&cYou don''t have permission to use this command.'
+
+  removehome:
+    description: Delete a home.
+    usage: /removehome <n>
+    aliases: [delhome]
+    permission: homeforge.use
+    permission-message: '&cYou don''t have permission to use this command.'
+
+  homes:
+    description: Browse your homes or manage extra home slots.
+    usage: /homes [player|add|remove|set|info] [player] [amount]
+    aliases: [homelist]
+
+  hfreload:
+    description: Reload HomeForge configuration without a restart.
+    usage: /hfreload
+    aliases: [homeforgereload]
+    permission: homeforge.admin
+    permission-message: '&cYou don''t have permission to use this command.'
+
+  importhomes:
+    description: Import homes from EssentialsX.
+    usage: /importhomes essentials
+    permission: homeforge.admin
+    permission-message: '&cYou don''t have permission to use this command.'
+
+permissions:
+
+  homeforge.use:
+    description: Grants access to all basic home commands.
+    default: true
+
+  homeforge.limit.1:
+    description: Allows creating 1 home.
+    default: false
+  homeforge.limit.2:
+    description: Allows creating 2 homes.
+    default: false
+  homeforge.limit.3:
+    description: Allows creating 3 homes.
+    default: false
+  homeforge.limit.5:
+    description: Allows creating 5 homes.
+    default: false
+  homeforge.limit.10:
+    description: Allows creating 10 homes.
+    default: false
+  homeforge.limit.20:
+    description: Allows creating 20 homes.
+    default: false
+  homeforge.limit.50:
+    description: Allows creating 50 homes.
+    default: false
+  homeforge.limit.*:
+    description: Allows creating the maximum homes defined in config.
+    default: false
+
+  homeforge.cooldown.bypass:
+    description: Bypasses the teleport cooldown.
+    default: false
+
+  homeforge.admin:
+    description: Full admin access to HomeForge.
+    default: op
+    children:
+      homeforge.admin.viewother: true
+      homeforge.admin.editother: true
+      homeforge.admin.extrahomes: true
+      homeforge.admin.reload: true
+      homeforge.admin.import: true
+
+  homeforge.admin.viewother:
+    description: View another player's homes GUI.
+    default: op
+
+  homeforge.admin.editother:
+    description: Edit another player's homes.
+    default: op
+
+  homeforge.admin.extrahomes:
+    description: Manage extra home slots for players.
+    default: op
+
+  homeforge.admin.reload:
+    description: Use /hfreload.
+    default: op
+
+  homeforge.admin.import:
+    description: Use /importhomes.
+    default: op
