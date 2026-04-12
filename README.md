@@ -2,14 +2,16 @@
 
 # 🏠 HomeForge
 
-**A modern, feature-rich sethome plugin for Paper 26.1**
+**A modern, feature-rich sethome plugin for Paper 1.21.11+ and Folia**
 
 [![Build](https://github.com/trynafindbhumik/HomeForge/actions/workflows/build.yml/badge.svg)](https://github.com/trynafindbhumik/HomeForge/actions/workflows/build.yml)
-[![Paper](https://img.shields.io/badge/Paper-26.1-blue)](https://papermc.io)
+[![Paper](https://img.shields.io/badge/Paper-1.21.11+-blue)](https://papermc.io)
+[![Folia](https://img.shields.io/badge/Folia-Supported-brightgreen)](https://papermc.io/software/folia)
 [![Java](https://img.shields.io/badge/Java-21-orange)](https://adoptium.net)
 [![License](https://img.shields.io/badge/License-MIT-green)](#license)
 
 *Set homes. Teleport instantly. Manage everything from a clean GUI.*
+*Now fully compatible with Folia's regionized multithreading.*
 
 </div>
 
@@ -33,6 +35,7 @@
 - **Tab completion** — all commands suggest home names and player names
 - **100% async** — all database I/O off the main thread, zero TPS impact
 - **Fully configurable messages** — every chat message is customizable
+- **✅ Folia compatible** — all schedulers migrated to `EntityScheduler`, `RegionScheduler`, `AsyncScheduler`, and `GlobalRegionScheduler`
 
 ---
 
@@ -40,11 +43,13 @@
 
 | Requirement | Version |
 |---|---|
-| Server | Paper 26.1 (Minecraft 26.1 / 1.21.11+) |
+| Server | Paper 1.21.11+ **or** Folia (any recent build) |
 | Java | 21 or higher |
 | Dependencies | None — SQLite & HikariCP downloaded automatically |
 
 > Works with Java and Bedrock (Geyser) players. The GUI uses single-click so Bedrock players on mobile/console have full access to all features.
+
+> **Folia note:** HomeForge is explicitly marked `folia-supported: true` and has been fully rewritten to use region-aware schedulers. It is safe to drop into any Folia server without modification.
 
 ---
 
@@ -52,7 +57,7 @@
 
 1. 👉 [Download Latest](https://github.com/trynafindbhumik/HomeForge/releases/latest)
 2. Drop it into your server's `plugins/` folder
-3. Start the server — Paper downloads SQLite and HikariCP automatically
+3. Start the server — Paper/Folia downloads SQLite and HikariCP automatically
 4. Edit `plugins/HomeForge/config.yml` to your liking
 5. Run `/hfreload` to apply changes without restarting
 
@@ -85,7 +90,7 @@ Also set `settings.server_name` to each server's name as configured in BungeeCor
 |---|---|---|
 | `/sethome [name]` | Set or update a home at your location | `homeforge.use` |
 | `/home [name]` | Teleport to a home (primary if no name given) | `homeforge.use` |
-| `/removehome <n>` | Delete a home (alias: `/delhome`) | `homeforge.use` |
+| `/removehome <name>` | Delete a home (alias: `/delhome`) | `homeforge.use` |
 | `/homes` | Open the homes GUI | `homeforge.use` |
 | `/homes <player>` | View another player's homes | `homeforge.admin.viewother` |
 | `/homes add <player> <n>` | Grant extra home slots | `homeforge.admin.extrahomes` |
@@ -171,6 +176,23 @@ All chat messages are configurable under `messages:` in `config.yml`. Supports `
 
 ---
 
+## 🔀 Folia Threading Model
+
+HomeForge uses the correct scheduler for every operation:
+
+| Scheduler | Used for |
+|---|---|
+| `AsyncScheduler` | All database I/O (SQLite / MySQL) |
+| `GlobalRegionScheduler` | Chat messages, future completion callbacks |
+| `EntityScheduler` | Inventory opens, teleport delay timers, post-teleport effects, join delay |
+| `RegionScheduler` | Location-based block operations |
+
+The teleport delay countdown runs on the `EntityScheduler` so it correctly follows the player if they cross a region boundary during the countdown. Post-teleport sound and particle effects are dispatched back onto the player's entity region after `teleportAsync` completes. All `CompletableFuture` callbacks that open inventories are re-dispatched onto the player's entity region before calling `openInventory`.
+
+> `folia-supported: true` is declared in `plugin.yml`. The plugin also works identically on regular Paper — the new scheduler APIs are available in Paper 1.19.4+ and behave as single-threaded equivalents.
+
+---
+
 ## 🗃️ Database Schema
 
 ```sql
@@ -210,7 +232,7 @@ CREATE TABLE Players (
 git clone https://github.com/trynafindbhumik/HomeForge.git
 cd HomeForge
 mvn clean package
-# Output: target/HomeForge-1.0.0.jar
+# Output: target/HomeForge-1.1.0.jar
 ```
 
 ---
@@ -254,7 +276,8 @@ HomeForge/
         │   ├── Home.java
         │   └── PlayerData.java
         └── utils/
-            └── MessageUtil.java
+            ├── MessageUtil.java
+            └── SchedulerUtil.java      ← Folia/Paper scheduler abstraction (NEW)
 ```
 
 ---

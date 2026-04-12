@@ -3,6 +3,7 @@ package io.github.homeforge.gui;
 import io.github.homeforge.HomeForge;
 import io.github.homeforge.models.Home;
 import io.github.homeforge.utils.MessageUtil;
+import io.github.homeforge.utils.SchedulerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,6 +16,13 @@ import java.util.UUID;
 
 import static io.github.homeforge.gui.HomesGUI.makeItem;
 
+/**
+ * Icon-picker GUI — lets the player choose a Material as the home's symbol.
+ *
+ * <p><b>Folia note:</b> The {@code updateSymbol} future completes on the global
+ * region thread.  Re-opening the parent settings GUI must be dispatched onto the
+ * player's entity region via {@link SchedulerUtil#runOnPlayer}.</p>
+ */
 public class SymbolPickerGUI implements InventoryHolder {
 
     private static final Material[] SYMBOLS = {
@@ -62,6 +70,8 @@ public class SymbolPickerGUI implements InventoryHolder {
         this.parent    = parent;
     }
 
+    // Build & open  (must be called on the player's entity region)
+
     public void open(Player viewer) {
         this.inventory = build();
         viewer.openInventory(inventory);
@@ -69,7 +79,8 @@ public class SymbolPickerGUI implements InventoryHolder {
 
     private Inventory build() {
         Inventory inv = Bukkit.createInventory(this, 54,
-                MessageUtil.colorize(plugin.getConfigManager().getGuiSymbolPickerTitle()));
+                MessageUtil.colorize(
+                        plugin.getConfigManager().getGuiSymbolPickerTitle()));
 
         ItemStack fill = makeItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 54; i++) inv.setItem(i, fill);
@@ -80,28 +91,48 @@ public class SymbolPickerGUI implements InventoryHolder {
                     List.of("&7Set as icon for &b" + home.getName() + "&7.")));
         }
 
-        inv.setItem(BACK_SLOT, makeItem(Material.ARROW, "&7← Back", List.of("&7Return to home settings.")));
+        inv.setItem(BACK_SLOT, makeItem(Material.ARROW, "&7← Back",
+                List.of("&7Return to home settings.")));
         this.inventory = inv;
         return inv;
     }
 
+    // Click handler  (called from GUIListener, already on the player's region)
+
     public void handleClick(Player viewer, int slot) {
-        if (slot == BACK_SLOT) { parent.open(viewer); return; }
+        if (slot == BACK_SLOT) {
+            parent.open(viewer);
+            return;
+        }
         if (slot < 0 || slot >= SYMBOLS.length) return;
+
         Material chosen = SYMBOLS[slot];
         home.setSymbol(chosen.name());
-        plugin.getHomeManager().updateSymbol(ownerUuid.toString(), home.getName(), chosen.name())
+
+        plugin.getHomeManager()
+                .updateSymbol(ownerUuid.toString(), home.getName(), chosen.name())
                 .thenAccept(ok -> {
-                    if (ok) MessageUtil.send(viewer, plugin.getConfigManager().getPrefix()
-                            + plugin.getConfigManager().msg("symbol_changed"), "%name%", home.getName());
-                    parent.open(viewer);
+                    // thenAccept fires on the global region thread.
+                    // Send message here (safe from any thread), then re-open
+                    // the parent GUI on the player's entity region.
+                    if (ok) MessageUtil.send(viewer,
+                            plugin.getConfigManager().getPrefix()
+                                    + plugin.getConfigManager().msg("symbol_changed"),
+                            "%name%", home.getName());
+
+                    SchedulerUtil.runOnPlayer(plugin, viewer,
+                            () -> parent.open(viewer));
                 });
     }
+
+    // Helpers
 
     private static String fmt(String name) {
         StringBuilder sb = new StringBuilder();
         for (String w : name.split("_"))
-            sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1).toLowerCase()).append(" ");
+            sb.append(Character.toUpperCase(w.charAt(0)))
+              .append(w.substring(1).toLowerCase())
+              .append(" ");
         return sb.toString().trim();
     }
 

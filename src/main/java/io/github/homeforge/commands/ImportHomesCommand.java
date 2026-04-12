@@ -3,6 +3,7 @@ package io.github.homeforge.commands;
 import io.github.homeforge.HomeForge;
 import io.github.homeforge.models.Home;
 import io.github.homeforge.utils.MessageUtil;
+import io.github.homeforge.utils.SchedulerUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -14,8 +15,14 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-// /importhomes essentials
-// Reads EssentialsX player YAML files and imports all homes into HomeForge.
+/**
+ * /importhomes essentials
+ *
+ * Reads EssentialsX player YAML files and imports all homes into HomeForge.
+ * The heavy file I/O is performed on an async thread via {@link SchedulerUtil#runAsync};
+ * the result message is delivered on the global region so it is always safe to
+ * send to any CommandSender (player or console).
+ */
 public class ImportHomesCommand implements CommandExecutor {
 
     private final HomeForge plugin;
@@ -38,23 +45,28 @@ public class ImportHomesCommand implements CommandExecutor {
             return true;
         }
 
-        File essentialsDir = new File(plugin.getDataFolder().getParentFile(), "Essentials/userdata");
+        File essentialsDir = new File(
+                plugin.getDataFolder().getParentFile(), "Essentials/userdata");
+
         if (!essentialsDir.exists() || !essentialsDir.isDirectory()) {
             MessageUtil.send(sender, plugin.getConfigManager().getPrefix()
-                    + MessageUtil.replace(plugin.getConfigManager().msg("import_failed"),
+                    + MessageUtil.replace(
+                            plugin.getConfigManager().msg("import_failed"),
                             "%error%", "EssentialsX userdata folder not found"));
             return true;
         }
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        // All file I/O runs async; result is delivered on the global region.
+        SchedulerUtil.runAsync(plugin, () -> {
             AtomicInteger count = new AtomicInteger(0);
-            String serverName  = plugin.getConfigManager().getServerName();
+            String serverName   = plugin.getConfigManager().getServerName();
 
             File[] files = essentialsDir.listFiles(f -> f.getName().endsWith(".yml"));
             if (files == null || files.length == 0) {
-                plugin.getServer().getScheduler().runTask(plugin, () ->
-                        MessageUtil.send(sender, plugin.getConfigManager().getPrefix()
-                                + plugin.getConfigManager().msg("import_nothing")));
+                SchedulerUtil.runGlobal(plugin, () ->
+                        MessageUtil.send(sender,
+                                plugin.getConfigManager().getPrefix()
+                                        + plugin.getConfigManager().msg("import_nothing")));
                 return;
             }
 
@@ -66,16 +78,19 @@ public class ImportHomesCommand implements CommandExecutor {
                 YamlConfiguration yaml;
                 try { yaml = YamlConfiguration.loadConfiguration(file); }
                 catch (Exception e) {
-                    plugin.getLogger().log(Level.WARNING, "Skipping " + file.getName(), e);
+                    plugin.getLogger().log(Level.WARNING,
+                            "Skipping " + file.getName(), e);
                     continue;
                 }
 
-                ConfigurationSection homesSection = yaml.getConfigurationSection("homes");
+                ConfigurationSection homesSection =
+                        yaml.getConfigurationSection("homes");
                 if (homesSection == null) continue;
 
                 for (String homeName : homesSection.getKeys(false)) {
                     if (plugin.getHomeManager().getHome(uuidStr, homeName) != null) continue;
-                    ConfigurationSection hs = homesSection.getConfigurationSection(homeName);
+                    ConfigurationSection hs =
+                            homesSection.getConfigurationSection(homeName);
                     if (hs == null) continue;
                     try {
                         Home h = new Home();
@@ -94,15 +109,18 @@ public class ImportHomesCommand implements CommandExecutor {
                         if (plugin.getDatabase().insertHome(h)) count.incrementAndGet();
                     } catch (Exception e) {
                         plugin.getLogger().log(Level.WARNING,
-                                "Failed to import home '" + homeName + "' for " + uuidStr, e);
+                                "Failed to import home '" + homeName
+                                        + "' for " + uuidStr, e);
                     }
                 }
             }
 
             int total = count.get();
-            plugin.getServer().getScheduler().runTask(plugin, () ->
-                    MessageUtil.send(sender, plugin.getConfigManager().getPrefix()
-                            + plugin.getConfigManager().msg(total == 0 ? "import_nothing" : "import_success"),
+            SchedulerUtil.runGlobal(plugin, () ->
+                    MessageUtil.send(sender,
+                            plugin.getConfigManager().getPrefix()
+                                    + plugin.getConfigManager().msg(
+                                            total == 0 ? "import_nothing" : "import_success"),
                             "%count%", String.valueOf(total)));
         });
         return true;

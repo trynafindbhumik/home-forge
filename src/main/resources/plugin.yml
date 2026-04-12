@@ -1,12 +1,16 @@
 name: HomeForge
 version: '${project.version}'
 main: io.github.homeforge.HomeForge
-description: A modern sethome plugin for Paper 26.1
+description: A modern sethome plugin for Paper 26.1 and Folia
 author: Bhumik Jain
 website: https://github.com/trynafindbhumik/HomeForge
 api-version: '1.21.11'
 
-# SQLite and HikariCP downloaded by Paper at startup — no shading needed
+# Required: tells Folia this plugin has been explicitly written
+# to be region-thread-safe (uses EntityScheduler, RegionScheduler, etc.)
+folia-supported: true
+
+# SQLite and HikariCP downloaded by Paper/Folia at startup — no shading needed
 libraries:
   - org.xerial:sqlite-jdbc:3.49.1.0
   - com.zaxxer:HikariCP:6.2.1
